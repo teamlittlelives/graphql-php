@@ -18,6 +18,11 @@ class Error extends \Exception
     public $nodes;
 
     /**
+     * @var string
+     */
+    private $statusCode;
+
+    /**
      * @var array
      */
     private $positions;
@@ -45,13 +50,15 @@ class Error extends \Exception
     {
         if ($error instanceof \Exception) {
             $message = $error->getMessage();
+            $code = $error->getCode();
             $previous = $error;
+            $statusCode = method_exists($error, 'getStatusCode') ? $error->getStatusCode() : null;
+            return new Error($message, $nodes, $previous, null, null, $code, $statusCode);
         } else {
             $message = (string) $error;
             $previous = null;
+            return new Error($message, $nodes, $previous);
         }
-
-        return new Error($message, $nodes, $previous);
     }
 
     /**
@@ -69,9 +76,9 @@ class Error extends \Exception
      * @param Source $source
      * @param null $positions
      */
-    public function __construct($message, $nodes = null, \Exception $previous = null, Source $source = null, $positions = null)
+    public function __construct($message, $nodes = null, \Exception $previous = null, Source $source = null, $positions = null, $code = 0, $statusCode = null)
     {
-        parent::__construct($message, 0, $previous);
+        parent::__construct($message, $code, $previous);
 
         if ($nodes instanceof \Traversable) {
             $nodes = iterator_to_array($nodes);
@@ -80,6 +87,7 @@ class Error extends \Exception
         $this->nodes = $nodes;
         $this->source = $source;
         $this->positions = $positions;
+        $this->statusCode = $statusCode;
     }
 
     /**
@@ -128,5 +136,16 @@ class Error extends \Exception
         }
 
         return $this->locations;
+    }
+
+    /**
+     * @return int
+     */
+    public function getStatusCode()
+    {
+        if (null === $this->statusCode) {
+            $this->statusCode = 500;
+        }
+        return $this->statusCode;
     }
 }
